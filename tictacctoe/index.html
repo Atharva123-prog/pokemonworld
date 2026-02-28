@@ -1,0 +1,398 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Rock Paper Scissors</title>
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+      font-family: "Segoe UI", sans-serif;
+    }
+
+    body {
+      height: 100vh;
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      align-items: center;
+      overflow: hidden;
+      background: linear-gradient(-45deg, #ff9aef, #d88bff, #ff7ed1, #fcb0ff);
+        background: radial-gradient(circle at center, #4e342e, #000);
+      background-size: 400% 400%;
+      animation: gradientShift 10s ease infinite;
+      color: white;
+      position: relative;
+    }
+
+    @keyframes gradientShift {
+      0% { background-position: 0% 50%; }
+      50% { background-position: 100% 50%; }
+      100% { background-position: 0% 50%; }
+    }
+
+    .emoji {
+      position: absolute;
+      font-size: 2rem;
+      animation: floatUp linear forwards;
+      pointer-events: none;
+      opacity: 0.8;
+    }
+
+    @keyframes floatUp {
+      0% { transform: translateY(100vh) rotate(0deg); opacity: 0; }
+      20% { opacity: 1; }
+      100% { transform: translateY(-10vh) rotate(360deg); opacity: 0; }
+    }
+
+    .game-container {
+      background: rgba(0, 0, 0, 0.3);
+      padding: 20px;
+      border-radius: 30px;
+      text-align: center;
+      box-shadow: 0 12px 30px rgba(0,0,0,0.4);
+      position: relative;
+      z-index: 2;
+    }
+
+    h1 {
+      font-size: 2rem;
+      margin-bottom: 15px;
+    }
+
+    .scoreboard {
+      display: flex;
+      justify-content: space-around;
+      font-size: 1.2rem;
+      margin-bottom: 15px;
+    }
+
+    .triangle-container {
+      width: 200px;
+      height: 200px;
+      margin: 0 auto;
+      position: relative;
+    }
+
+    .choice {
+      font-size: 2rem;
+      background: rgba(255, 255, 255, 0.2);
+      border: 2px solid white;
+      border-radius: 50%;
+      padding: 10px 15px;
+      cursor: pointer;
+      position: absolute;
+      transition: transform 0.3s ease, background 0.4s, box-shadow 0.3s;
+      z-index: 3;
+    }
+
+    .choice:hover {
+      background: white;
+      color: #764ba2;
+      transform: scale(1.2);
+    }
+
+    .rock { top: 0; left: 50%; transform: translateX(-50%); }
+    .paper { bottom: 0; left: 0; }
+    .scissors { bottom: 0; right: 0; }
+
+    .winner { box-shadow: 0 0 20px 5px limegreen !important; }
+    .loser { box-shadow: 0 0 20px 5px red !important; }
+
+    .result {
+      margin-top: 15px;
+      font-size: 1.2rem;
+      min-height: 30px;
+    }
+
+    .symbol {
+      position: absolute;
+      font-size: 2rem;
+      animation: burst 1.5s ease-out forwards;
+      pointer-events: none;
+      z-index: 1;
+    }
+
+    @keyframes burst {
+      to {
+        transform: translate(var(--x), var(--y)) scale(1.5);
+        opacity: 0;
+      }
+    }
+
+    .crown {
+      position: absolute;
+      top: -30px;
+      font-size: 1.5rem;
+      animation: dropCrown 1s ease forwards;
+    }
+
+    @keyframes dropCrown {
+      from { transform: translateY(-100px) rotate(-20deg); opacity: 0; }
+      to { transform: translateY(0) rotate(0deg); opacity: 1; }
+    }
+
+    .replay-btn {
+      margin-top: 15px;
+      padding: 8px 15px;
+      font-size: 1rem;
+      background: gold;
+      border: none;
+      border-radius: 10px;
+      cursor: pointer;
+      display: none;
+    }
+
+    .replay-btn:hover { background: orange; }
+
+    canvas.particles {
+      position: fixed;
+      top: 0;
+      left: 0;
+      z-index: 0;
+    }
+
+    .model-layout {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 40px;
+    }
+
+    .model-container { width: 200px; text-align: center; }
+    .player-label { margin-top: 4px; font-size: 1rem; }
+    #game-box {
+      width: 600px;
+      height: 600px;
+      background: rgba(255,255,255,0.1);
+      border-radius: 15px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+    model-viewer {
+      width: 200px;
+      height: 250px;
+    }
+  </style>
+  <script type="module" src="https://unpkg.com/@google/model-viewer/dist/model-viewer.min.js"></script>
+</head>
+<body>
+  <canvas class="particles"></canvas>
+
+  <!-- 3D Models + Game Area -->
+  <div class="model-layout">
+    <div class="model-container">
+      <model-viewer src="https://modelviewer.dev/shared-assets/models/Astronaut.glb"
+                    autoplay auto-rotate camera-controls shadow-intensity="1">
+      </model-viewer>
+      <div class="player-label">Player 1</div>
+    </div>
+
+    <div id="game-box">
+      <!-- RPS Game Inside -->
+      <div class="game-container">
+        <h1>Rock Paper Scissors</h1>
+        <div class="scoreboard">
+          <div id="user-label">👤 You: <span id="user-score">0</span></div>
+          <div id="bot-label">🤖 Bot: <span id="bot-score">0</span></div>
+        </div>
+        <div class="triangle-container">
+          <button class="choice rock" data-choice="rock">✊</button>
+          <button class="choice paper" data-choice="paper">✋</button>
+          <button class="choice scissors" data-choice="scissors">✌️</button>
+        </div>
+        <div class="result" id="result">Make your move!</div>
+        <button class="replay-btn" id="replay">🔄 Play Again</button>
+      </div>
+    </div>
+
+    <div class="model-container">
+      <model-viewer src="https://modelviewer.dev/shared-assets/models/RobotExpressive.glb"
+                    autoplay auto-rotate camera-controls shadow-intensity="1">
+      </model-viewer>
+      <div class="player-label">Player 2</div>
+    </div>
+  </div>
+
+  <script>
+    const canvas = document.querySelector('.particles');
+    const ctx = canvas.getContext('2d');
+    canvas.width = window.innerWidth; canvas.height = window.innerHeight;
+
+    let particles = [];
+    for (let i = 0; i < 80; i++) {
+      particles.push({
+        x: Math.random() * canvas.width,
+        y: Math.random() * canvas.height,
+        size: Math.random() * 2 + 1,
+        dx: (Math.random() - 0.5) * 0.8,
+        dy: (Math.random() - 0.5) * 0.8
+      });
+    }
+
+    function animateParticles() {
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+      ctx.fillStyle = 'rgba(255,255,255,0.7)';
+      particles.forEach(p => {
+        p.x += p.dx;
+        p.y += p.dy;
+        if (p.x < 0 || p.x > canvas.width) p.dx *= -1;
+        if (p.y < 0 || p.y > canvas.height) p.dy *= -1;
+        ctx.beginPath();
+        ctx.arc(p.x, p.y, p.size, 0, Math.PI * 2);
+        ctx.fill();
+      });
+      requestAnimationFrame(animateParticles);
+    }
+    animateParticles();
+
+    const choices = document.querySelectorAll('.choice');
+    const result = document.getElementById('result');
+    const userScoreEl = document.getElementById('user-score');
+    const botScoreEl = document.getElementById('bot-score');
+    const replayBtn = document.getElementById('replay');
+    const userLabel = document.getElementById('user-label');
+    const botLabel = document.getElementById('bot-label');
+
+    let userScore = 0;
+    let botScore = 0;
+    let rounds = 0;
+
+    const sounds = {
+      click: new Audio("https://assets.mixkit.co/sfx/preview/mixkit-video-game-retro-click-237.wav"),
+      win: new Audio("https://assets.mixkit.co/sfx/preview/mixkit-achievement-bell-600.wav"),
+      lose: new Audio("https://assets.mixkit.co/sfx/preview/mixkit-wrong-answer-fail-notification-946.wav"),
+      draw: new Audio("https://assets.mixkit.co/sfx/preview/mixkit-game-show-wrong-answer-buzz-950.wav")
+    };
+
+    const bgEmojis = ["⛰️", "📃", "✂️"];
+    function spawnEmoji() {
+      const emoji = document.createElement("span");
+      emoji.classList.add("emoji");
+      emoji.textContent = bgEmojis[Math.floor(Math.random() * bgEmojis.length)];
+      emoji.style.left = Math.random() * 100 + "vw";
+      emoji.style.animationDuration = (5 + Math.random() * 5) + "s";
+      emoji.style.fontSize = (1 + Math.random() * 2) + "rem";
+      document.body.appendChild(emoji);
+      setTimeout(() => emoji.remove(), 10000);
+    }
+    setInterval(spawnEmoji, 500);
+
+    const getBotChoice = () => {
+      const options = ['rock', 'paper', 'scissors'];
+      return options[Math.floor(Math.random() * options.length)];
+    };
+
+    const getResult = (user, bot) => {
+      if (user === bot) { sounds.draw.play(); return "It's a Draw!"; }
+      if (
+        (user === 'rock' && bot === 'scissors') ||
+        (user === 'paper' && bot === 'rock') ||
+        (user === 'scissors' && bot === 'paper')
+      ) {
+        userScore++;
+        sounds.win.play();
+        return "You Win! 🎉";
+      } else {
+        botScore++;
+        sounds.lose.play();
+        return "You Lose! 😢";
+      }
+    };
+
+    const throwSymbols = (symbol) => {
+      for (let i = 0; i < 25; i++) {
+        const span = document.createElement('span');
+        span.textContent = symbol;
+        span.classList.add('symbol');
+        span.style.left = "50%";
+        span.style.top = "50%";
+        const angle = Math.random() * 2 * Math.PI;
+        const distance = 100 + Math.random() * 150;
+        span.style.setProperty('--x', `${Math.cos(angle) * distance}px`);
+        span.style.setProperty('--y', `${Math.sin(angle) * distance}px`);
+        span.style.fontSize = (1 + Math.random() * 2) + 'rem';
+        document.body.appendChild(span);
+        setTimeout(() => span.remove(), 1500);
+      }
+    };
+
+    const highlightWinner = (userChoice, botChoice, outcome) => {
+      const userBtn = document.querySelector(`.choice.${userChoice}`);
+      const botBtn = document.querySelector(`.choice.${botChoice}`);
+      if (outcome.includes("Win")) {
+        userBtn.classList.add("winner");
+        botBtn.classList.add("loser");
+      } else if (outcome.includes("Lose")) {
+        botBtn.classList.add("winner");
+        userBtn.classList.add("loser");
+      }
+      setTimeout(() => {
+        userBtn.classList.remove("winner","loser");
+        botBtn.classList.remove("winner","loser");
+      }, 1000);
+    };
+
+    const endGame = () => {
+      let finalMessage = '';
+      if (userScore > botScore) {
+        finalMessage = "🎉 You are the Champion!";
+        const crown = document.createElement('span');
+        crown.textContent = "👑";
+        crown.classList.add("crown");
+        userLabel.appendChild(crown);
+      } else if (userScore < botScore) {
+        finalMessage = "😢 Bot wins the game!";
+        const crown = document.createElement('span');
+        crown.textContent = "👑";
+        crown.classList.add("crown");
+        botLabel.appendChild(crown);
+      } else {
+        finalMessage = "🤝 It's a Tie!";
+      }
+      result.textContent = finalMessage;
+      replayBtn.style.display = "inline-block";
+      choices.forEach(btn => btn.disabled = true);
+    };
+
+    const playGame = (userChoice) => {
+      if (rounds >= 3) return;
+      sounds.click.play();
+      if (userChoice === 'rock') throwSymbols("⛰️");
+      if (userChoice === 'paper') throwSymbols("📃");
+      if (userChoice === 'scissors') throwSymbols("✂️");
+
+      const botChoice = getBotChoice();
+      const outcome = getResult(userChoice, botChoice);
+      result.textContent = `You chose ${userChoice} | Bot chose ${botChoice} → ${outcome}`;
+      userScoreEl.textContent = userScore;
+      botScoreEl.textContent = botScore;
+
+      highlightWinner(userChoice, botChoice, outcome);
+
+      rounds++;
+      if (rounds === 3) {
+        setTimeout(endGame, 1000);
+      }
+    };
+
+    choices.forEach(btn => {
+      btn.addEventListener('click', () => {
+        playGame(btn.getAttribute('data-choice'));
+      });
+    });
+
+    replayBtn.addEventListener('click', () => {
+      userScore = botScore = rounds = 0;
+      userScoreEl.textContent = botScoreEl.textContent = "0";
+      result.textContent = "Make your move!";
+      replayBtn.style.display = "none";
+      document.querySelectorAll(".crown").forEach(c => c.remove());
+      choices.forEach(btn => btn.disabled = false);
+    });
+  </script>
+</body>
+</html>
